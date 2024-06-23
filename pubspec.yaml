@@ -1,0 +1,37 @@
+name: my_flutter_web_app
+description: Aplicativo para gerenciamento de licitações da Prefeitura de Arapiraca.
+
+# Versão do seu aplicativo
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.12.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.5.5
+  supabase: ^2.2.0
+
+  # Dependências para o projeto
+  cupertino_icons: ^1.0.2
+  http: ^1.2.1 # Para fazer requisições HTTP (se usar API)
+  localstorage: ^5.0.0 # Ou a versão mais recente
+  provider:
+  postgrest: ^2.1.2
+  logger: ^2.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Dependências para desenvolvimento
+  flutter_lints: ^4.0.0
+
+# Configurações do Flutter
+flutter:
+  uses-material-design: true
+
+  # Seus assets (imagens, fontes, etc.)
+  assets:
+    - assets/logo.png
