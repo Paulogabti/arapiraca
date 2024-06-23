@@ -311,7 +311,7 @@ class _LicitacoesScreenState extends State<LicitacoesScreen> {
       objeto,
       responsavel,
       status,
-      userId!, // Força que userId não seja null
+      userId! as String, // Força que userId não seja null
     );
     _addLicitacao(novaLicitacao);
     Navigator.of(context).pop();
