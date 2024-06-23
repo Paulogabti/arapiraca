@@ -1,0 +1,23 @@
+[build]
+  command = "docker build -t my-flutter-app . && docker run my-flutter-app"
+  publish = "build/web"
+
+[build.environment]
+  # Se precisar de variáveis de ambiente específicas para o build, adicione-as aqui
+  # Example:
+  #  NODE_VERSION = "14"
+  #  FLUTTER_CHANNEL = "stable"
+
+[context.production.environment]
+  # Variáveis de ambiente específicas para o contexto de produção
+  # Example:
+  #  NODE_ENV = "production"
+
+[context.deploy-preview]
+  # Configurações específicas para deploy previews
+  command = "docker build -t my-flutter-app-preview . && docker run my-flutter-app-preview"
+
+[context.deploy-preview.environment]
+  # Variáveis de ambiente específicas para deploy previews
+  # Example:
+  #  NODE_ENV = "development"
