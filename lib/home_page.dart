@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'auth_provider.dart';
 import 'dart:convert'; // Importe o pacote dart:convert para usar json.decode
 import 'package:http/http.dart' as http;
 
-const String supabaseUrl = 'https://uiublaevwngtqbklkjjz.supabase.co';
-const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpdWJsYWV2d25ndHFia2xramp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc5MzY2MzAsImV4cCI6MjAzMzUxMjYzMH0.b8DR31fj8gAi54e3KxyrIT3kn7FmT90IZ4AZOBOYSmo';
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Home Page'),
+      ),
+      body: Center(
+        child: Text('Bem-vindo à Home Page!'),
+      ),
+    );
+  }
+}
+
+// Substitua 'http://localhost:3000' pelo endereço do seu servidor backend Node.js
+const String backendUrl = 'http://localhost:3000';
 
 class Licitacao {
   final String id;
@@ -18,7 +31,6 @@ class Licitacao {
   String userId;
 
   Licitacao(this.id, this.numero, this.modalidade, this.objeto, this.responsavel, this.status, this.userId);
-
 
   Color getBackgroundColor() {
     switch (modalidade) {
@@ -68,7 +80,6 @@ class LicitacoesScreen extends StatefulWidget {
 }
 
 class _LicitacoesScreenState extends State<LicitacoesScreen> {
-  final supabase = Supabase.instance.client; // Supondo que você tenha inicializado o Supabase
   List<Licitacao> licitacoes = [];
   List<String> filtrosSelecionados = [];
   bool _isLoading = true;
@@ -81,19 +92,15 @@ class _LicitacoesScreenState extends State<LicitacoesScreen> {
     });
   }
 
-
   Future<void> _fetchLicitacoes() async {
     final userId = Provider.of<AuthProvider>(context, listen: false).currentUser;
-    final url = Uri.parse('$supabaseUrl/rest/v1/licitacoes?user_id=$userId');
+    final url = Uri.parse('$backendUrl/licitacoes?user_id=$userId');
 
     try {
-      final response = await http.get(url, headers: {
-        'apikey': '$supabaseAnonKey',
-        'Authorization': 'Bearer $supabaseAnonKey'
-      });
+      final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        List<dynamic> licitacoesJson = json.decode(response.body); // Corrigido com a importação de dart:convert
+        List<dynamic> licitacoesJson = json.decode(response.body);
         setState(() {
           licitacoes = licitacoesJson.map((licitacao) => Licitacao.fromMap(licitacao)).toList();
           _isLoading = false;
@@ -104,9 +111,7 @@ class _LicitacoesScreenState extends State<LicitacoesScreen> {
     } catch (error) {
       print('Erro ao buscar licitações: $error');
     }
-}
-
-
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -302,22 +307,21 @@ class _LicitacoesScreenState extends State<LicitacoesScreen> {
               },
             ),
             TextButton(
-  child: Text('Adicionar'),
-  onPressed: () {
-    Licitacao novaLicitacao = Licitacao(
-      '', // UUID não é necessário aqui, pois é gerado automaticamente
-      numero,
-      modalidade,
-      objeto,
-      responsavel,
-      status,
-      userId! as String, // Força que userId não seja null
-    );
-    _addLicitacao(novaLicitacao);
-    Navigator.of(context).pop();
-  },
-),
-
+              child: Text('Adicionar'),
+              onPressed: () {
+                Licitacao novaLicitacao = Licitacao(
+                  '', // UUID não é necessário aqui, pois é gerado automaticamente
+                  numero,
+                  modalidade,
+                  objeto,
+                  responsavel,
+                  status,
+                  userId!,
+                );
+                _addLicitacao(novaLicitacao);
+                Navigator.of(context).pop();
+              },
+            ),
           ],
         );
       },
@@ -325,7 +329,6 @@ class _LicitacoesScreenState extends State<LicitacoesScreen> {
   }
 
   void _showEditDialog(Licitacao licitacao) {
-
     String numero = licitacao.numero;
     String modalidade = licitacao.modalidade;
     String objeto = licitacao.objeto;
@@ -398,12 +401,16 @@ class _LicitacoesScreenState extends State<LicitacoesScreen> {
             TextButton(
               child: Text('Salvar'),
               onPressed: () {
-                licitacao.numero = numero;
-                licitacao.modalidade = modalidade;
-                licitacao.objeto = objeto;
-                licitacao.responsavel = responsavel;
-                licitacao.status = status;
-                _updateLicitacao(licitacao);
+                Licitacao licitacaoAtualizada = Licitacao(
+                  licitacao.id,
+                  numero,
+                  modalidade,
+                  objeto,
+                  responsavel,
+                  status,
+                  licitacao.userId,
+                );
+                _updateLicitacao(licitacaoAtualizada);
                 Navigator.of(context).pop();
               },
             ),
@@ -413,38 +420,59 @@ class _LicitacoesScreenState extends State<LicitacoesScreen> {
     );
   }
 
-Future<void> _addLicitacao(Licitacao licitacao) async {
-  try {
-    await supabase
-     .from('licitacoes')
-     .insert(licitacao.toMap());
-    _fetchLicitacoes();
-  } catch (error) {
-    print('Erro ao adicionar licitação: $error');
-  }
-}
+  Future<void> _addLicitacao(Licitacao licitacao) async {
+    final url = Uri.parse('$backendUrl/licitacoes');
 
-Future<void> _updateLicitacao(Licitacao licitacao) async {
-  try {
-    await supabase
-     .from('licitacoes')
-       .update(licitacao.toMap())
-       .eq('id', licitacao.id);
-    _fetchLicitacoes();
-  } catch (error) {
-    print('Erro ao atualizar licitação: $error');
-  }
-}
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(licitacao.toMap()),
+      );
 
-Future<void> _deleteLicitacao(String id) async {
-  try {
-    await supabase
-     .from('licitacoes')
-       .delete()
-       .eq('id', id);
-    _fetchLicitacoes();
-  } catch (error) {
-    print('Erro ao deletar licitação: $error');
+      if (response.statusCode == 201) {
+        _fetchLicitacoes();
+      } else {
+        throw Exception('Erro ao adicionar licitação: ${response.reasonPhrase}');
+      }
+    } catch (error) {
+      print('Erro ao adicionar licitação: $error');
+    }
   }
-}
+
+  Future<void> _updateLicitacao(Licitacao licitacao) async {
+    final url = Uri.parse('$backendUrl/licitacoes/${licitacao.id}');
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(licitacao.toMap()),
+      );
+
+      if (response.statusCode == 200) {
+        _fetchLicitacoes();
+      } else {
+        throw Exception('Erro ao atualizar licitação: ${response.reasonPhrase}');
+      }
+    } catch (error) {
+      print('Erro ao atualizar licitação: $error');
+    }
+  }
+
+  Future<void> _deleteLicitacao(String id) async {
+    final url = Uri.parse('$backendUrl/licitacoes/$id');
+
+    try {
+      final response = await http.delete(url);
+
+      if (response.statusCode == 200) {
+        _fetchLicitacoes();
+      } else {
+        throw Exception('Erro ao deletar licitação: ${response.reasonPhrase}');
+      }
+    } catch (error) {
+      print('Erro ao deletar licitação: $error');
+    }
+  }
 }

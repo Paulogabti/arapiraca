@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import 'auth_provider.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -7,6 +11,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String _errorMessage = '';
@@ -24,6 +29,14 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
+                Container(
+                  width: 300,
+                  child: TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(labelText: 'Nome'),
+                  ),
+                ),
+                SizedBox(height: 20),
                 Container(
                   width: 300,
                   child: TextField(
@@ -58,32 +71,42 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-Future<void> _register(BuildContext context) async {
-  String email = _emailController.text;
-  String password = _passwordController.text;
+  Future<void> _register(BuildContext context) async {
+    String name = _nameController.text;
+    String email = _emailController.text;
+    String password = _passwordController.text;
 
-  // Preparando os dados para inserção no banco de dados
-  final insertData = {
-    'login': email,
-    'password_hash': password, // Enviando a senha em texto simples
-  };
+    // Hash da senha
+    var bytes = utf8.encode(password);
+    var passwordHash = sha256.convert(bytes).toString();
 
-  try {
-    // Realizando a inserção no banco de dados
-    final response = await Supabase.instance.client
-   .from('users')
-   .insert(insertData);
+    // Preparando os dados para inserção no banco de dados
+    final insertData = {
+      'name': name,
+      'email': email,
+      'password_hash': passwordHash,
+    };
 
-    print("Resposta da inserção: $response"); // Log para diagnosticar a resposta
+    try {
+      // Realizando a inserção no banco de dados via backend
+      final response = await http.post(
+        Uri.parse('http://localhost:3000/register'), // Atualize com a URL do seu backend
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(insertData),
+      );
 
-    // Navega de volta para a tela de login usando a rota nomeada, independentemente do resultado
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-  } catch (e) {
-    print("Erro ao registrar: $e");
-    setState(() {
-      _errorMessage = "Erro ao registrar";
-    });
+      if (response.statusCode == 200) {
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      } else {
+        setState(() {
+          _errorMessage = "Erro ao registrar";
+        });
+      }
+    } catch (e) {
+      print("Erro ao registrar: $e");
+      setState(() {
+        _errorMessage = "Erro ao registrar";
+      });
+    }
   }
-}
-
 }
