@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'auth_provider.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:crypto/crypto.dart';
-
-// Substitua 'http://localhost:3000' pelo endereço do seu servidor backend Node.js
-const String backendUrl = 'http://localhost:3000';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -14,7 +8,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String _errorMessage = '';
 
@@ -38,8 +32,8 @@ class _LoginPageState extends State<LoginPage> {
                 Container(
                   width: 300,
                   child: TextField(
-                    controller: _usernameController,
-                    decoration: InputDecoration(labelText: 'Nome de usuário'),
+                    controller: _emailController,
+                    decoration: InputDecoration(labelText: 'Email'),
                   ),
                 ),
                 SizedBox(height: 20),
@@ -77,38 +71,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _login(BuildContext context) async {
-    String username = _usernameController.text;
+    String email = _emailController.text;
     String password = _passwordController.text;
 
-    // Hash the password
-    var bytes = utf8.encode(password);
-    var passwordHash = sha256.convert(bytes).toString();
-
-    // URL do backend para login
-    final url = Uri.parse('$backendUrl/login');
-
     try {
-      // Enviar requisição de login para o backend
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'username': username, 'password_hash': passwordHash}),
-      );
-
-      if (response.statusCode == 200) {
-        final responseJson = json.decode(response.body);
-        // Armazenar o UUID do usuário ao fazer login
-        Provider.of<AuthProvider>(context, listen: false).login(responseJson['uuid'], responseJson['additionalArgument']); // Substitua 'additionalArgument' pelo nome real do argumento esperado
-        Navigator.pushReplacementNamed(context, '/home', arguments: responseJson['uuid']);
-      } else {
-        setState(() {
-          _errorMessage = 'Usuário ou senha inválidos';
-        });
-      }
+      await Provider.of<AuthProvider>(context, listen: false).login(email, password);
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (error) {
-      print('Erro ao fazer login: $error');
       setState(() {
-        _errorMessage = 'Erro ao fazer login. Tente novamente mais tarde.';
+        _errorMessage = error.toString();
       });
     }
   }

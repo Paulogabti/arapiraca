@@ -1,45 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'login_page.dart';
-import 'home_page.dart';  // Certifique-se de que esta importação está correta
-import 'register_page.dart';
 import 'auth_provider.dart';
+import 'home_page.dart';
+import 'login_page.dart';
+import 'register_page.dart';
+import 'perfil.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => AuthProvider(),
-      child: MyApp(),
-    ),
-  );
+void main() {
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Ambiente de Trabalho CPC',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+      child: MaterialApp(
+        title: 'Ambiente de Trabalho - CPC-Obras',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        initialRoute: '/login',
+        routes: {
+          '/login': (context) => LoginPage(),
+          '/home': (context) => HomePage(),
+          '/register': (context) => RegisterPage(), // Defina a rota para a página de registro
+          '/perfil': (context) => PerfilPage(),
+        },
       ),
-      home: _buildHomeScreen(context),
-      routes: {
-        '/login': (context) => LoginPage(),
-        '/register': (context) => RegisterPage(),
-        '/home': (context) => HomePage(),  // Certifique-se de que esta rota está correta
-      },
-    );
-  }
-
-  Widget _buildHomeScreen(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        return authProvider.currentUser != null
-            ? HomePage()  // Certifique-se de que esta chamada está correta
-            : LoginPage();
-      },
     );
   }
 }

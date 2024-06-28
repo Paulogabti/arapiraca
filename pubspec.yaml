@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  google_fonts:
 
   # Dependências para o projeto
   cupertino_icons: ^1.0.2
@@ -32,3 +33,5 @@ flutter:
   # Seus assets (imagens, fontes, etc.)
   assets:
     - assets/logo.png
+    - assets/hudson.png
+    - assets/melania.png

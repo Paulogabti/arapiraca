@@ -8,13 +8,14 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> register(String nome, String email, String senha) async {
     final url = Uri.parse('http://localhost:3000/register');
+    
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'nome': nome, 'email': email, 'senha': senha}),
+      body: json.encode({'name': nome, 'email': email, 'password': senha}),
     );
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200) {
       // Usuário registrado com sucesso
     } else {
       throw Exception('Falha ao registrar usuário');
@@ -23,17 +24,42 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> login(String email, String senha) async {
     final url = Uri.parse('http://localhost:3000/login');
+    
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'email': email, 'senha': senha}),
+      body: json.encode({'email': email, 'password': senha}),
     );
 
     if (response.statusCode == 200) {
-      _currentUser = json.decode(response.body)['user']['email'];
+      final responseJson = json.decode(response.body);
+      _currentUser = responseJson['user']['id'].toString(); // Converta o user_id para string
       notifyListeners();
     } else {
       throw Exception('Falha ao fazer login');
     }
+  }
+
+  Future<void> updatePassword(String userId, String currentPassword, String newPassword) async {
+    final url = Uri.parse('http://localhost:3000/update-password');
+    
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'userId': userId,
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Falha ao atualizar senha');
+    }
+  }
+
+  void logout() {
+    _currentUser = null;
+    notifyListeners();
   }
 }
