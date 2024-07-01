@@ -44,7 +44,7 @@ app.post('/login', (req, res) => {
       res.status(500).send('Erro ao fazer login');
     } else if (results.length > 0) {
       const user = results[0];
-      res.status(200).json({ user: { id: user.id.toString(), email: user.email } });
+      res.status(200).json({ user: { id: user.id.toString(), name: user.name, email: user.email } });
     } else {
       res.status(401).send('Credenciais inválidas');
     }
@@ -52,22 +52,55 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/licitacoes', (req, res) => {
-  const { numero, modalidade, objeto, responsavel, status, user_id } = req.body;
-  const query = 'INSERT INTO licitacoes (numero, modalidade, objeto, responsavel, status, user_id) VALUES (?, ?, ?, ?, ?, ?)';
-  db.query(query, [numero, modalidade, objeto, responsavel, status, user_id], (err, result) => {
+  const { numero, modalidade, numeroModalidade, objeto, status, data, observacoes, user_id } = req.body;
+
+  const queryUser = 'SELECT name FROM users WHERE id = ?';
+  db.query(queryUser, [user_id], (err, userResult) => {
     if (err) {
       console.error(err);
-      res.status(500).send('Erro ao adicionar licitação');
-    } else {
-      res.status(201).send('Licitação adicionada');
+      res.status(500).send('Erro ao buscar o responsável');
+      return;
     }
+
+    if (userResult.length === 0) {
+      res.status(404).send('Usuário não encontrado');
+      return;
+    }
+
+    const responsavel = userResult[0].name;
+
+    const query = 'INSERT INTO licitacoes (numero, modalidade, numeroModalidade, objeto, responsavel, status, data, observacoes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    db.query(query, [numero, modalidade, numeroModalidade, objeto, responsavel, status, data, observacoes, user_id], (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Erro ao adicionar licitação');
+      } else {
+        res.status(201).send('Licitação adicionada');
+      }
+    });
   });
 });
 
 app.get('/licitacoes', (req, res) => {
-  const { user_id } = req.query;
-  const query = 'SELECT * FROM licitacoes WHERE user_id = ?';
-  db.query(query, [user_id], (err, results) => {
+  const { user_id, year } = req.query;
+
+  let query = 'SELECT * FROM licitacoes';
+  let queryParams = [];
+
+  if (user_id) {
+    query += ' WHERE user_id = ?';
+    queryParams.push(user_id);
+  }
+
+  if (year) {
+    query += user_id ? ' AND' : ' WHERE';
+    query += ' YEAR(data) = ?';
+    queryParams.push(year);
+  }
+
+  query += ' ORDER BY data DESC';
+
+  db.query(query, queryParams, (err, results) => {
     if (err) {
       console.error(err);
       res.status(500).send('Erro ao buscar licitações');
@@ -79,15 +112,32 @@ app.get('/licitacoes', (req, res) => {
 
 app.put('/licitacoes/:id', (req, res) => {
   const { id } = req.params;
-  const { numero, modalidade, objeto, responsavel, status } = req.body;
-  const query = 'UPDATE licitacoes SET numero = ?, modalidade = ?, objeto = ?, responsavel = ?, status = ? WHERE id = ?';
-  db.query(query, [numero, modalidade, objeto, responsavel, status, id], (err, result) => {
+  const { numero, modalidade, numeroModalidade, objeto, status, data, observacoes, user_id } = req.body;
+
+  const queryUser = 'SELECT name FROM users WHERE id = ?';
+  db.query(queryUser, [user_id], (err, userResult) => {
     if (err) {
       console.error(err);
-      res.status(500).send('Erro ao atualizar licitação');
-    } else {
-      res.status(200).send('Licitação atualizada');
+      res.status(500).send('Erro ao buscar o responsável');
+      return;
     }
+
+    if (userResult.length === 0) {
+      res.status(404).send('Usuário não encontrado');
+      return;
+    }
+
+    const responsavel = userResult[0].name;
+
+    const query = 'UPDATE licitacoes SET numero = ?, modalidade = ?, numeroModalidade = ?, objeto = ?, responsavel = ?, status = ?, data = ?, observacoes = ? WHERE id = ?';
+    db.query(query, [numero, modalidade, numeroModalidade, objeto, responsavel, status, data, observacoes, id], (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Erro ao atualizar licitação');
+      } else {
+        res.status(200).send('Licitação atualizada');
+      }
+    });
   });
 });
 

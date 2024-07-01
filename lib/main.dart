@@ -6,7 +6,8 @@ import 'login_page.dart';
 import 'register_page.dart';
 import 'perfil.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
 
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => LoginPage(),
           '/home': (context) => HomePage(),
-          '/register': (context) => RegisterPage(), // Defina a rota para a página de registro
+          '/register': (context) => RegisterPage(),
           '/perfil': (context) => PerfilPage(),
         },
       ),

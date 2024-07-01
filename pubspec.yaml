@@ -11,26 +11,24 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts:
-
-  # Dependências para o projeto
+  intl:
+  pdf: ^3.11.0
   cupertino_icons: ^1.0.2
-  http: ^1.2.1 # Para fazer requisições HTTP (se usar API)
-  provider:
+  http: ^0.13.3
+  provider: ^5.0.0
   logger: ^2.3.0
   crypto:
+  open_file: ^3.2.1
+  table_calendar:
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^2.0.0
 
-  # Dependências para desenvolvimento
-  flutter_lints: ^4.0.0
-
-# Configurações do Flutter
 flutter:
   uses-material-design: true
 
-  # Seus assets (imagens, fontes, etc.)
   assets:
     - assets/logo.png
     - assets/hudson.png
