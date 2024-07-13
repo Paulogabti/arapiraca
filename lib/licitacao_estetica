@@ -1,0 +1,398 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'auth_provider.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart'; // Para trabalhar com a formatação de datas
+
+const String backendUrl = 'http://localhost:3000';
+
+class Licitacao {
+  final int id;
+  final String numero;
+  final String modalidade;
+  final String numeroModalidade;
+  final String objeto;
+  final String responsavel;
+  final String status;
+  final String data;
+  final String observacoes;
+  final int userId;
+
+  Licitacao(
+    this.id,
+    this.numero,
+    this.modalidade,
+    this.numeroModalidade,
+    this.objeto,
+    this.responsavel,
+    this.status,
+    this.data,
+    this.observacoes,
+    this.userId,
+  );
+
+  Color getBackgroundColor() {
+    switch (modalidade) {
+      case 'Pregão Eletrônico':
+        return Colors.orange[100]!;
+      case 'Concorrência':
+        return Colors.blue[100]!;
+      case 'Inexigibilidade':
+        return Colors.purple[100]!;
+      case 'Adesão':
+        return Colors.green[100]!;
+      case 'Dispensa':
+        return Colors.grey[200]!;
+      case 'Chamada Pública':
+        return Colors.green[200]!;
+      default:
+        return Colors.white;
+    }
+  }
+
+  factory Licitacao.fromMap(Map<String, dynamic> map) {
+    return Licitacao(
+      map['id'] as int,
+      map['numero'] as String,
+      map['modalidade'] as String,
+      map['numeroModalidade'] as String? ?? 'N/A',
+      map['objeto'] as String,
+      map['responsavel'] as String,
+      map['status'] as String,
+      map['data'] as String,
+      map['observacoes'] as String,
+      map['user_id'] as int,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'numero': numero,
+      'modalidade': modalidade,
+      'numeroModalidade': numeroModalidade.isEmpty ? 'N/A' : numeroModalidade,
+      'objeto': objeto,
+      'responsavel': responsavel,
+      'status': status,
+      'data': data,
+      'observacoes': observacoes,
+      'user_id': userId,
+    };
+  }
+}
+
+class LicitacoesEstetica extends StatefulWidget {
+  @override
+  _LicitacoesEsteticaState createState() => _LicitacoesEsteticaState();
+}
+
+class _LicitacoesEsteticaState extends State<LicitacoesEstetica> {
+  List<Licitacao> licitacoes = [];
+  bool _isLoading = true;
+  int currentYear = DateTime.now().year;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero, () {
+      _fetchLicitacoes(year: currentYear);
+    });
+  }
+
+  Future<void> _fetchLicitacoes({int? year}) async {
+    final userId = Provider.of<AuthProvider>(context, listen: false).currentUser;
+    String url = '$backendUrl/licitacoes?user_id=$userId';
+
+    if (year != null) {
+      url += '&year=$year';
+    }
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        List<dynamic> licitacoesJson = json.decode(response.body);
+
+        setState(() {
+          licitacoes = licitacoesJson.map((licitacao) => Licitacao.fromMap(licitacao)).toList();
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Erro ao buscar licitações: ${response.reasonPhrase}');
+      }
+    } catch (error) {
+      print('Erro ao buscar licitações: $error');
+    }
+  }
+
+  void _updateYear(int year) {
+    setState(() {
+      currentYear = year;
+      _fetchLicitacoes(year: currentYear);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Licitacoes Estética'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back),
+                  onPressed: () {
+                    _updateYear(currentYear - 1);
+                  },
+                ),
+                Text(
+                  '${currentYear - 1}',
+                  style: GoogleFonts.montserrat(),
+                ),
+                SizedBox(width: 20),
+                Text(
+                  '$currentYear',
+                  style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 20),
+                Text(
+                  '${currentYear + 1}',
+                  style: GoogleFonts.montserrat(),
+                ),
+                IconButton(
+                  icon: Icon(Icons.arrow_forward),
+                  onPressed: () {
+                    _updateYear(currentYear + 1);
+                  },
+                ),
+              ],
+            ),
+          ),
+          Divider(),
+          Expanded(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    itemCount: licitacoes.length,
+                    itemBuilder: (context, index) {
+                      final licitacao = licitacoes[index];
+                      return Card(
+                        color: licitacao.getBackgroundColor(),
+                        child: ListTile(
+                          title: RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Modalidade: ',
+                                  style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(
+                                  text: licitacao.modalidade,
+                                  style: GoogleFonts.montserrat(),
+                                ),
+                              ],
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Nº do Processo: ',
+                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text: licitacao.numero,
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Número da Modalidade: ',
+                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text: licitacao.numeroModalidade,
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Objeto: ',
+                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text: licitacao.objeto,
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Responsável: ',
+                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text: licitacao.responsavel,
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Status: ',
+                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text: licitacao.status,
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Data: ',
+                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text: DateFormat('dd-MM-yyyy').format(DateTime.parse(licitacao.data)),
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Observações: ',
+                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                    ),
+                                    TextSpan(
+                                      text: licitacao.observacoes ?? '',
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 10),
+                              _buildStatusDates(licitacao.id),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusDates(int licitacaoId) {
+    return FutureBuilder<List<StatusHistorico>>(
+      future: _fetchStatusHistorico(licitacaoId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return Text('Erro ao carregar status');
+        } else {
+          final historicos = snapshot.data ?? [];
+          return Wrap(
+            spacing: 8.0,
+            children: historicos.map((historico) {
+              return Container(
+                padding: EdgeInsets.all(4.0),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black),
+                  borderRadius: BorderRadius.circular(4.0),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      historico.status,
+                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      DateFormat('dd/MM/yyyy').format(DateTime.parse(historico.dataStatus)),
+                      style: GoogleFonts.montserrat(),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          );
+        }
+      },
+    );
+  }
+
+  Future<List<StatusHistorico>> _fetchStatusHistorico(int licitacaoId) async {
+    final response = await http.get(Uri.parse('$backendUrl/historico_status?licitacao_id=$licitacaoId'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((item) => StatusHistorico.fromMap(item)).toList();
+    } else {
+      throw Exception('Erro ao buscar histórico de status');
+    }
+  }
+}
+
+class StatusHistorico {
+  final String responsavel;
+  final String modalidade;
+  final String objeto;
+  final String status;
+  final String dataStatus;
+  final String observacoes;
+
+  StatusHistorico(
+    this.responsavel,
+    this.modalidade,
+    this.objeto,
+    this.status,
+    this.dataStatus,
+    this.observacoes,
+  );
+
+  factory StatusHistorico.fromMap(Map<String, dynamic> map) {
+    return StatusHistorico(
+      map['responsavel'],
+      map['modalidade'],
+      map['objeto'],
+      map['status'],
+      map['data_status'],
+      map['observacoes'] ?? '',
+    );
+  }
+}

@@ -84,17 +84,19 @@ Future<void> generateGeneralReport(BuildContext context, List<Licitacao> licitac
   );
 
   // Salvar PDF no Flutter Web e abrir em uma nova guia
-  final bytes = await pdf.save();
-  final blob = html.Blob([bytes], 'application/pdf');
-  final url = html.Url.createObjectUrlFromBlob(blob);
-  final anchor = html.AnchorElement(href: url)
-    ..setAttribute("download", "relatorio_geral.pdf")
-    ..target = 'blank'
-    ..click();
-  html.Url.revokeObjectUrl(url);
+final bytes = await pdf.save();
+final blob = html.Blob([bytes], 'application/pdf');
+final url = html.Url.createObjectUrlFromBlob(blob);
 
-  // Fechar a barra de progresso
-  Navigator.of(context).pop();
+html.AnchorElement(href: url)
+  ..setAttribute("download", "relatorio_geral.pdf")
+  ..target = 'blank'
+  ..click();
+
+html.Url.revokeObjectUrl(url);
+
+// Fechar a barra de progresso
+Navigator.of(context).pop();
 }
 
 pw.Widget buildGeneralTable(List<Licitacao> licitacoes) {

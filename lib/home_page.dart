@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart'; // Para trabalhar com a formatação de datas
 import 'notificacoes.dart'; // Importar o HudsonIcon
 import 'relatorios.dart';
+import 'calendar_page.dart';
 
 // Substitua 'http://localhost:3000' pelo endereço do seu servidor backend Node.js
 const String backendUrl = 'http://localhost:3000';
@@ -60,7 +61,7 @@ class Licitacao {
       map['id'] as int,
       map['numero'] as String,
       map['modalidade'] as String,
-      map['numero_modalidade'] as String? ?? '', // Verifique se é null e defina um valor padrão
+      map['numeroModalidade'] as String? ?? 'N/A', // Define um valor padrão se for null
       map['objeto'] as String,
       map['responsavel'] as String,
       map['status'] as String,
@@ -75,7 +76,7 @@ class Licitacao {
       'id': id,
       'numero': numero,
       'modalidade': modalidade,
-      'numero_modalidade': numeroModalidade.isEmpty ? 'N/A' : numeroModalidade, // Garanta que não é null
+      'numeroModalidade': numeroModalidade.isEmpty ? 'N/A' : numeroModalidade, // Define um valor padrão se estiver vazio
       'objeto': objeto,
       'responsavel': responsavel,
       'status': status,
@@ -83,6 +84,22 @@ class Licitacao {
       'observacoes': observacoes,
       'user_id': userId,
     };
+  }
+}
+
+Future<List<Map<String, dynamic>>> _fetchHistoricoStatus(int licitacaoId) async {
+  final url = Uri.parse('$backendUrl/historico_status?licitacao_id=$licitacaoId');
+  try {
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      List<dynamic> historicoJson = json.decode(response.body);
+      return historicoJson.map((historico) => historico as Map<String, dynamic>).toList();
+    } else {
+      throw Exception('Erro ao buscar histórico de status: ${response.reasonPhrase}');
+    }
+  } catch (error) {
+    print('Erro ao buscar histórico de status: $error');
+    return [];
   }
 }
 
@@ -273,6 +290,64 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  List<Map<String, dynamic>> _sortAndFilterHistorico(List<Map<String, dynamic>> historico) {
+  final order = ['Edital Publicado', 'Homologado', 'Contrato Publicado'];
+  historico.sort((a, b) {
+    int indexA = order.indexOf(a['status']);
+    int indexB = order.indexOf(b['status']);
+    if (indexA == -1) indexA = order.length;
+    if (indexB == -1) indexB = order.length;
+    return indexA.compareTo(indexB);
+  });
+  return historico.where((h) => order.contains(h['status'])).toList();
+}
+void _showDeleteHistoricoConfirmationDialog(int historicoId) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Confirmação de Exclusão'),
+        content: Text('Tem certeza que deseja excluir este Histórico?'),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Cancelar'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: Text('Excluir'),
+            onPressed: () {
+              _deleteHistorico(historicoId);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> _deleteHistorico(int historicoId) async {
+  final url = Uri.parse('$backendUrl/historico_status/$historicoId');
+
+  try {
+    final response = await http.delete(url);
+
+    if (response.statusCode == 200) {
+      setState(() {
+        // Atualiza a interface removendo o histórico deletado
+        _fetchLicitacoes(year: currentYear);
+      });
+    } else {
+      throw Exception('Erro ao deletar histórico: ${response.reasonPhrase}');
+    }
+  } catch (error) {
+    print('Erro ao deletar histórico: $error');
+  }
+}
+
+
   @override
   Widget build(BuildContext context) {
     List<Licitacao> licitacoesFiltradas = filtrosSelecionados.isEmpty
@@ -293,299 +368,389 @@ class _HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-  title: Row(
-    children: [
-      Image.asset('assets/logo.png', height: 40),
-      SizedBox(width: 10),
-      Text('Ambiente de Trabalho - CPC-Obras'),
-      Spacer(),
-      HudsonIcon(),
-      SizedBox(width: 16), // Adicionando espaçamento proporcional
-      RelatoriosIcon(), // Adicionar o RelatoriosIcon aqui
-      SizedBox(width: 16), // Adicionando espaçamento proporcional
-      PopupMenuButton<String>(
-        onSelected: (value) {
-          if (value == 'alterar_senha') {
-            _showChangePasswordDialog(context);
-          } else if (value == 'logout') {
-            Provider.of<AuthProvider>(context, listen: false).logout();
-            Navigator.of(context).pushReplacementNamed('/login');
-          }
-        },
-        icon: Tooltip(
-          message: 'Opções do usuário',
-          child: CircleAvatar(
-            child: Icon(Icons.person),
+  appBar: AppBar(
+    title: Row(
+      children: [
+        Image.asset('assets/logo.png', height: 40),
+        SizedBox(width: 10),
+        Text(
+          'Ambiente de Trabalho - CPC',
+          style: GoogleFonts.montserrat(
+            fontWeight: FontWeight.bold,
+            fontSize: 20, // Ajuste o tamanho conforme necessário
+            color: const Color.fromARGB(255, 1, 89, 161),
           ),
         ),
-        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-          const PopupMenuItem<String>(
-            value: 'alterar_senha',
-            child: Text('Alterar Senha'),
+        Spacer(),
+        HudsonIcon(),
+        SizedBox(width: 16), // Adicionando espaçamento proporcional
+        RelatoriosIcon(), // Adicionar o RelatoriosIcon aqui
+        SizedBox(width: 16), // Adicionando espaçamento proporcional
+      //  IconButton(
+       //   icon: Icon(Icons.calendar_today),
+        //  onPressed: () {
+          //  Navigator.push(
+          //    context,
+          //    MaterialPageRoute(builder: (context) => CalendarPage()),
+         //   );
+    //      },
+    //    ),
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'alterar_senha') {
+              _showChangePasswordDialog(context);
+            } else if (value == 'logout') {
+              Provider.of<AuthProvider>(context, listen: false).logout();
+              Navigator.of(context).pushReplacementNamed('/login');
+            }
+          },
+          icon: Tooltip(
+            message: 'Opções do usuário',
+            child: CircleAvatar(
+              child: Icon(Icons.person),
+            ),
           ),
-          const PopupMenuItem<String>(
-            value: 'logout',
-            child: Text('Sair'),
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'alterar_senha',
+              child: Text('Alterar Senha'),
+            ),
+            const PopupMenuItem<String>(
+              value: 'logout',
+              child: Text('Sair'),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ),
+  body: Column(
+    children: [
+      Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              icon: Icon(Icons.arrow_back),
+              onPressed: () {
+                _updateYear(currentYear - 1);
+              },
+            ),
+            Text(
+              '${currentYear - 1}',
+              style: GoogleFonts.montserrat(),
+            ),
+            SizedBox(width: 20),
+            Text(
+              '$currentYear',
+              style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(width: 20),
+            Text(
+              '${currentYear + 1}',
+              style: GoogleFonts.montserrat(),
+            ),
+            IconButton(
+              icon: Icon(Icons.arrow_forward),
+              onPressed: () {
+                _updateYear(currentYear + 1);
+              },
+            ),
+            Spacer(), // Adicionando um Spacer para empurrar a lupa para a direita
+            IconButton(
+              icon: Icon(Icons.search),
+              onPressed: () {
+                _filterLicitacoes();
+              },
+            ),
+            Container(
+              width: 200,
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Procurar processos',
                 ),
-              ],
+              ),
             ),
           ],
         ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back),
-                  onPressed: () {
-                    _updateYear(currentYear - 1);
-                  },
-                ),
-                Text(
-                  '${currentYear - 1}',
-                  style: GoogleFonts.montserrat(),
-                ),
-                SizedBox(width: 20),
-                Text(
-                  '$currentYear',
-                  style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(width: 20),
-                Text(
-                  '${currentYear + 1}',
-                  style: GoogleFonts.montserrat(),
-                ),
-                IconButton(
-                  icon: Icon(Icons.arrow_forward),
-                  onPressed: () {
-                    _updateYear(currentYear + 1);
-                  },
-                ),
-                Spacer(), // Adicionando um Spacer para empurrar a lupa para a direita
-                IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: () {
-                    _filterLicitacoes();
-                  },
-                ),
-                Container(
-                  width: 200,
-                  child: TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Procurar processos',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  FilterChip(
-                    label: Text('Concorrência'),
-                    selected: filtrosSelecionados.contains('Concorrência'),
-                    onSelected: (bool selected) {
-                      _toggleFiltro('Concorrência', selected);
-                    },
-                  ),
-                  FilterChip(
-                    label: Text('Pregão Eletrônico'),
-                    selected: filtrosSelecionados.contains('Pregão Eletrônico'),
-                    onSelected: (bool selected) {
-                      _toggleFiltro('Pregão Eletrônico', selected);
-                    },
-                  ),
-                  FilterChip(
-                    label: Text('Dispensa'),
-                    selected: filtrosSelecionados.contains('Dispensa'),
-                    onSelected: (bool selected) {
-                      _toggleFiltro('Dispensa', selected);
-                    },
-                  ),
-                  FilterChip(
-                    label: Text('Adesão'),
-                    selected: filtrosSelecionados.contains('Adesão'),
-                    onSelected: (bool selected) {
-                      _toggleFiltro('Adesão', selected);
-                    },
-                  ),
-                  FilterChip(
-                    label: Text('Inexigibilidade'),
-                    selected: filtrosSelecionados.contains('Inexigibilidade'),
-                    onSelected: (bool selected) {
-                      _toggleFiltro('Inexigibilidade', selected);
-                    },
-                  ),
-                  FilterChip(
-                    label: Text('Chamada Pública'),
-                    selected: filtrosSelecionados.contains('Chamada Pública'),
-                    onSelected: (bool selected) {
-                      _toggleFiltro('Chamada Pública', selected);
-                    },
-                  ),
-                ],
+      Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              FilterChip(
+                label: Text('Concorrência'),
+                selected: filtrosSelecionados.contains('Concorrência'),
+                onSelected: (bool selected) {
+                  _toggleFiltro('Concorrência', selected);
+                },
               ),
-            ),
+              FilterChip(
+                label: Text('Pregão Eletrônico'),
+                selected: filtrosSelecionados.contains('Pregão Eletrônico'),
+                onSelected: (bool selected) {
+                  _toggleFiltro('Pregão Eletrônico', selected);
+                },
+              ),
+              FilterChip(
+                label: Text('Dispensa'),
+                selected: filtrosSelecionados.contains('Dispensa'),
+                onSelected: (bool selected) {
+                  _toggleFiltro('Dispensa', selected);
+                },
+              ),
+              FilterChip(
+                label: Text('Adesão'),
+                selected: filtrosSelecionados.contains('Adesão'),
+                onSelected: (bool selected) {
+                  _toggleFiltro('Adesão', selected);
+                },
+              ),
+              FilterChip(
+                label: Text('Inexigibilidade'),
+                selected: filtrosSelecionados.contains('Inexigibilidade'),
+                onSelected: (bool selected) {
+                  _toggleFiltro('Inexigibilidade', selected);
+                },
+              ),
+              FilterChip(
+                label: Text('Chamada Pública'),
+                selected: filtrosSelecionados.contains('Chamada Pública'),
+                onSelected: (bool selected) {
+                  _toggleFiltro('Chamada Pública', selected);
+                },
+              ),
+            ],
           ),
-          Divider(),
-          Expanded(
-            child: _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    itemCount: licitacoesFiltradas.length,
-                    itemBuilder: (context, index) {
-                      final licitacao = licitacoesFiltradas[index];
-                      return Card(
-                        color: licitacao.getBackgroundColor(),
-                        child: ListTile(
-                          title: RichText(
-                            text: TextSpan(
+        ),
+      ),
+      Divider(),
+      Expanded(
+        child: _isLoading
+            ? Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                itemCount: licitacoesFiltradas.length,
+                itemBuilder: (context, index) {
+                  final licitacao = licitacoesFiltradas[index];
+                  return FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _fetchHistoricoStatus(licitacao.id),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Card(
+                          color: licitacao.getBackgroundColor(),
+                          child: ListTile(
+                            title: Text('Carregando...'),
+                          ),
+                        );
+                      } else if (snapshot.hasError) {
+                        return Card(
+                          color: licitacao.getBackgroundColor(),
+                          child: ListTile(
+                            title: Text('Erro ao carregar histórico'),
+                          ),
+                        );
+                      } else {
+                        final historico = snapshot.data!;
+                        return Card(
+                          color: licitacao.getBackgroundColor(),
+                          child: ListTile(
+                            title: RichText(
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'Modalidade: ',
+                                    style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                  ),
+                                  TextSpan(
+                                    text: licitacao.modalidade,
+                                    style: GoogleFonts.montserrat(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                TextSpan(
-                                  text: 'Modalidade: ',
-                                  style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Nº do Processo: ',
+                                        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: licitacao.numero,
+                                        style: GoogleFonts.montserrat(),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                TextSpan(
-                                  text: licitacao.modalidade,
-                                  style: GoogleFonts.montserrat(),
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Número da Modalidade: ', // Adicionado este campo
+                                        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: licitacao.numeroModalidade, // Exibindo o valor
+                                        style: GoogleFonts.montserrat(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Objeto: ',
+                                        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: licitacao.objeto,
+                                        style: GoogleFonts.montserrat(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Responsável: ',
+                                        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: licitacao.responsavel,
+                                        style: GoogleFonts.montserrat(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Status: ',
+                                        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: licitacao.status,
+                                        style: GoogleFonts.montserrat(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Data: ',
+                                        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: DateFormat('dd-MM-yyyy').format(DateTime.parse(licitacao.data)),
+                                        style: GoogleFonts.montserrat(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Observações: ',
+                                        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                      ),
+                                      TextSpan(
+                                        text: licitacao.observacoes ?? '',
+                                        style: GoogleFonts.montserrat(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Exibir histórico de status aqui
+                                Row(
+                                  children: historico
+                                      .where((h) => ['Edital Publicado', 'Homologado', 'Contrato Publicado'].contains(h['status']))
+                                      .map((h) {
+                                    return Container(
+                                      margin: EdgeInsets.only(right: 8.0),
+                                      padding: EdgeInsets.all(8.0),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.black),
+                                        borderRadius: BorderRadius.circular(4.0),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                h['status'],
+                                                style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
+                                              ),
+                                              Text(
+                                                DateFormat('dd/MM/yyyy').format(DateTime.parse(h['data_status'])),
+                                                style: GoogleFonts.montserrat(),
+                                              ),
+                                            ],
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.close, color: Colors.red),
+                                            onPressed: () {
+                                              _showDeleteHistoricoConfirmationDialog(h['id']);
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.edit),
+                                  onPressed: () {
+                                    _showEditDialog(licitacao);
+                                  },
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete),
+                                  onPressed: () {
+                                    _showDeleteConfirmationDialog(licitacao);
+                                  },
                                 ),
                               ],
                             ),
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Número: ',
-                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-                                    ),
-                                    TextSpan(
-                                      text: licitacao.numero,
-                                      style: GoogleFonts.montserrat(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Objeto: ',
-                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-                                    ),
-                                    TextSpan(
-                                      text: licitacao.objeto,
-                                      style: GoogleFonts.montserrat(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Responsável: ',
-                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-                                    ),
-                                    TextSpan(
-                                      text: licitacao.responsavel,
-                                      style: GoogleFonts.montserrat(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Status: ',
-                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-                                    ),
-                                    TextSpan(
-                                      text: licitacao.status,
-                                      style: GoogleFonts.montserrat(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-    children: [
-      TextSpan(
-        text: 'Data: ',
-        style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-      ),
-      TextSpan(
-        text: DateFormat('dd-MM-yyyy').format(DateTime.parse(licitacao.data)), // Formatação da data
-        style: GoogleFonts.montserrat(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Observações: ',
-                                      style: GoogleFonts.montserrat(fontWeight: FontWeight.bold),
-                                    ),
-                                    TextSpan(
-                                      text: licitacao.observacoes,
-                                      style: GoogleFonts.montserrat(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.edit),
-                                onPressed: () {
-                                  _showEditDialog(licitacao);
-                                },
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete),
-                                onPressed: () {
-                                  _showDeleteConfirmationDialog(licitacao);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
+                        );
+                      }
                     },
-                  ),
-          ),
-        ],
+                  );
+                },
+              ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showAddDialog();
-        },
-        child: Icon(Icons.add),
-      ),
-    );
+    ],
+  ),
+  floatingActionButton: FloatingActionButton(
+    onPressed: () {
+      _showAddDialog();
+    },
+    child: Icon(Icons.add),
+  ),
+);
   }
 
   void _toggleFiltro(String filtro, bool selected) {
@@ -654,7 +819,7 @@ class _HomePageState extends State<HomePage> {
                       _modalidade = newValue!;
                     });
                   },
-                  items: <String>['Pregão Eletrônico', 'Concorrência', 'Inexigibilidade', 'Adesão', 'Dispensa']
+                  items: <String>['Pregão Eletrônico', 'Concorrência', 'Inexigibilidade', 'Adesão', 'Dispensa', 'Chamada Pública']
                       .map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
@@ -768,7 +933,7 @@ class _HomePageState extends State<HomePage> {
 void _showEditDialog(Licitacao licitacao) {
   TextEditingController numeroController = TextEditingController(text: licitacao.numero);
   TextEditingController modalidadeController = TextEditingController(text: licitacao.modalidade);
-  TextEditingController numeroModalidadeController = TextEditingController(text: licitacao.numeroModalidade); // Novo controlador
+  TextEditingController numeroModalidadeController = TextEditingController(text: licitacao.numeroModalidade);
   TextEditingController objetoController = TextEditingController(text: licitacao.objeto);
   TextEditingController responsavelController = TextEditingController(text: licitacao.responsavel);
   TextEditingController observacoesController = TextEditingController(text: licitacao.observacoes);
@@ -776,12 +941,13 @@ void _showEditDialog(Licitacao licitacao) {
 
   String _status = licitacao.status;
 
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _selectDate(BuildContext context, StateSetter setState) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: data,
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
+      locale: const Locale('pt', 'BR'),
     );
     if (picked != null && picked != data) {
       setState(() {
@@ -790,97 +956,20 @@ void _showEditDialog(Licitacao licitacao) {
     }
   }
 
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Editar Licitação'),
-        content: SingleChildScrollView(
-          child: Column(
-            children: <Widget>[
-              TextField(
-                decoration: InputDecoration(labelText: 'Número'),
-                controller: numeroController,
-              ),
-              TextField(
-                decoration: InputDecoration(labelText: 'Modalidade'),
-                controller: modalidadeController,
-              ),
-              TextField(
-                decoration: InputDecoration(labelText: 'Número da Modalidade'),
-                controller: numeroModalidadeController,
-              ),
-              TextField(
-                decoration: InputDecoration(labelText: 'Objeto'),
-                controller: objetoController,
-              ),
-              TextField(
-                decoration: InputDecoration(labelText: 'Responsável'),
-                controller: responsavelController,
-              ),
-              DropdownButtonFormField<String>(
-                value: _status,
-                decoration: InputDecoration(labelText: 'Status'),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _status = newValue!;
-                  });
-                },
-                items: <String>[
-                  'Aberto', 'Em Análise', 'Em Análise Técnica', 'Elaborando Minuta',
-                  'Encaminhado para PGM', 'Elaborando Edital', 'Edital Publicado',
-                  'Em Fase Licitatória', 'Em Análise de Proposta', 'Em Análise Documentação',
-                  'Fase de Recurso', 'Homologado', 'Elaborando Contrato', 'Contrato Publicado',
-                  'Revogado', 'Cancelado', 'Arquivado'
-                ].map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-              ),
-              Row(
-                children: <Widget>[
-                  Text(
-                    "Data: ${DateFormat('dd-MM-yyyy').format(data)}",
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.calendar_today),
-                    onPressed: () => _selectDate(context),
-                  ),
-                ],
-              ),
-              TextField(
-                decoration: InputDecoration(labelText: 'Observações'),
-                controller: observacoesController,
-              ),
-            ],
+  void _showInformativePopup() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Informação Importante'),
+          content: Text(
+            'Vejo que você selecionou um status relevante para o relatório mensal de Edson e Hudson. Esteja ciente que a data que você colocar neste Status é a data que circulou a publicação deste ato. É importantíssimo para o Edson e Hudson colocar as informações.',
           ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Cancelar'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: Text('Salvar'),
-            onPressed: () {
-              Licitacao licitacaoAtualizada = Licitacao(
-                licitacao.id,
-                numeroController.text,
-                modalidadeController.text,
-                numeroModalidadeController.text,
-                objetoController.text,
-                responsavelController.text,
-                _status,
-                DateFormat('yyyy-MM-dd').format(data),
-                observacoesController.text,
-                licitacao.userId,
-              );
-              _updateLicitacao(licitacaoAtualizada);
-              Navigator.of(context).pop();
+          actions: <Widget>[
+            TextButton(
+              child: Text('Entendi'),
+              onPressed: () {
+                Navigator.of(context).pop();
               },
             ),
           ],
@@ -888,6 +977,128 @@ void _showEditDialog(Licitacao licitacao) {
       },
     );
   }
+
+  void _statusChanged(String? newValue) {
+    setState(() {
+      _status = newValue!;
+    });
+
+    if (_status == 'Edital Publicado' || _status == 'Homologado' || _status == 'Contrato Publicado') {
+      _showInformativePopup();
+    }
+  }
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return AlertDialog(
+            title: Text('Editar Licitação'),
+            content: SingleChildScrollView(
+              child: Column(
+                children: <Widget>[
+                  TextField(
+                    decoration: InputDecoration(labelText: 'Nº do Processo'),
+                    controller: numeroController,
+                  ),
+                  DropdownButtonFormField<String>(
+  value: modalidadeController.text,
+  onChanged: (String? newValue) {
+    setState(() {
+      modalidadeController.text = newValue!;
+    });
+  },
+  items: <String>[
+    'Pregão Eletrônico', 'Concorrência', 'Inexigibilidade', 'Adesão', 'Dispensa', 'Chamada Pública' // Adicione 'Chamada Pública' aqui também
+  ].map<DropdownMenuItem<String>>((String value) {
+    return DropdownMenuItem<String>(
+      value: value,
+      child: Text(value),
+    );
+  }).toList(),
+  decoration: InputDecoration(labelText: 'Modalidade'),
+),
+                  TextField(
+                    decoration: InputDecoration(labelText: 'Número da Modalidade'),
+                    controller: numeroModalidadeController,
+                  ),
+                  TextField(
+                    decoration: InputDecoration(labelText: 'Objeto'),
+                    controller: objetoController,
+                  ),
+                  TextField(
+                    decoration: InputDecoration(labelText: 'Responsável'),
+                    controller: responsavelController,
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: _status,
+                    decoration: InputDecoration(labelText: 'Status'),
+                    onChanged: _statusChanged,
+                    items: <String>[
+                      'Aberto', 'Em Análise', 'Em Análise Técnica', 'Elaborando Minuta',
+                      'Encaminhado para PGM', 'Elaborando Edital', 'Edital Publicado',
+                      'Em Fase Licitatória', 'Em Análise de Proposta', 'Em Análise Documentação',
+                      'Fase de Recurso', 'Homologado', 'Elaborando Contrato', 'Contrato Publicado',
+                      'Revogado', 'Cancelado', 'Arquivado'
+                    ].map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                  ),
+                  Row(
+                    children: <Widget>[
+                      Text(
+                        "Data: ${DateFormat('dd-MM-yyyy').format(data)}",
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.calendar_today),
+                        onPressed: () => _selectDate(context, setState),
+                      ),
+                    ],
+                  ),
+                  TextField(
+                    decoration: InputDecoration(labelText: 'Observações'),
+                    controller: observacoesController,
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text('Cancelar'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: Text('Salvar'),
+                onPressed: () {
+                  Licitacao licitacaoAtualizada = Licitacao(
+                    licitacao.id,
+                    numeroController.text,
+                    modalidadeController.text,
+                    numeroModalidadeController.text,
+                    objetoController.text,
+                    responsavelController.text,
+                    _status,
+                    DateFormat('yyyy-MM-dd').format(data),
+                    observacoesController.text,
+                    licitacao.userId,
+                  );
+                  _updateLicitacao(licitacaoAtualizada);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        }
+      );
+    },
+  );
+}
 
   Future<void> _addLicitacao(Licitacao licitacao) async {
   final url = Uri.parse('$backendUrl/licitacoes');
@@ -911,6 +1122,7 @@ void _showEditDialog(Licitacao licitacao) {
 
 Future<void> _updateLicitacao(Licitacao licitacao) async {
   final url = Uri.parse('$backendUrl/licitacoes/${licitacao.id}');
+  final historicoUrl = Uri.parse('$backendUrl/historico_status');
 
   try {
     final response = await http.put(
@@ -920,14 +1132,60 @@ Future<void> _updateLicitacao(Licitacao licitacao) async {
     );
 
     if (response.statusCode == 200) {
-      _fetchLicitacoes(year: currentYear); // Atualize aqui para incluir o ano
+      if (['Edital Publicado', 'Homologado', 'Contrato Publicado'].contains(licitacao.status)) {
+        final historicoResponse = await http.post(
+          historicoUrl,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'licitacao_id': licitacao.id,
+            'responsavel': licitacao.responsavel,
+            'modalidade': licitacao.modalidade,
+            'objeto': licitacao.objeto,
+            'status': licitacao.status,
+            'data_status': licitacao.data,
+            'observacoes': licitacao.observacoes,
+          }),
+        );
+
+        if (historicoResponse.statusCode == 201) {
+          // O histórico foi criado com sucesso
+        } else if (historicoResponse.statusCode == 400) {
+          // Mensagem de erro de duplicidade já tratada no backend
+        } else {
+          throw Exception('Erro ao salvar histórico de status: ${historicoResponse.reasonPhrase}');
+        }
+      }
+
+      // Atualize a lista de licitações após a atualização bem-sucedida
+      await _fetchLicitacoes(year: currentYear);
     } else {
       throw Exception('Erro ao atualizar licitação: ${response.reasonPhrase}');
     }
   } catch (error) {
     print('Erro ao atualizar licitação: $error');
-    }
+    _showErrorDialog(context, 'Erro ao atualizar a licitação.');
   }
+}
+
+void _showErrorDialog(BuildContext context, String message) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Erro'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            child: Text('OK'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Future<void> _deleteLicitacao(int id) async {
     final url = Uri.parse('$backendUrl/licitacoes/$id');

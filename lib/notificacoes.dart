@@ -24,10 +24,10 @@ class _HudsonIconState extends State<HudsonIcon> {
               _showHudsonOptions(context);
             },
             child: CircleAvatar(
-            radius: 20,
-            child: Icon(
-              Icons.list_alt, // Ícone a ser exibido
-            ),
+              radius: 20,
+              child: Icon(
+                Icons.list_alt, // Ícone a ser exibido
+              ),
             ),
           ),
         ),
@@ -58,6 +58,14 @@ class _HudsonIconState extends State<HudsonIcon> {
                 title: Text('Publicar'),
                 onTap: () {
                   _showPublishOptions(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.folder), // Ícone para Modelos de Arquivos
+                title: Text('Modelos de arquivos'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showFileModelOptions(context);
                 },
               ),
             ],
@@ -149,6 +157,193 @@ class _HudsonIconState extends State<HudsonIcon> {
                 },
               ),
             ],
+          ),
+          actions: [
+            TextButton(
+              child: Text('Fechar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showFileModelOptions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Modelos de arquivos'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text('Concorrência'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showModelOptionsDialog(context, 'Concorrência');
+                },
+              ),
+              ListTile(
+                title: Text('Pregão Eletrônico'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showModelOptionsDialog(context, 'Pregão Eletrônico');
+                },
+              ),
+              ListTile(
+                title: Text('Inexigibilidade'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showModelOptionsDialog(context, 'Inexigibilidade');
+                },
+              ),
+              ListTile(
+                title: Text('Credenciamento/Chamada Pública'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showModelOptionsDialog(context, 'Credenciamento/Chamada Pública');
+                },
+              ),
+              ListTile(
+                title: Text('Adesão'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showModelOptionsDialog(context, 'Adesão');
+                },
+              ),
+              ListTile(
+                title: Text('Dispensa'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showModelOptionsDialog(context, 'Dispensa');
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text('Fechar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showModelOptionsDialog(BuildContext context, String modalidade) {
+    final fileModelLinks = {
+      'Concorrência': {
+        'DFD': 'https://www.google.com',
+        'ETP': 'https://www.google.com',
+        'TR': 'https://www.google.com',
+        'AUTORIZAÇÃO PREFEITO': 'https://www.google.com',
+        'DISPONIBILIDADE ORÇAMENTÁRIA': 'https://www.google.com',
+        'MINUTA DE EDITAL': 'https://www.google.com',
+        'SOLICITAÇÃO DE PARECER': 'https://www.google.com',
+        'ATA DE JULGAMENTO HABILITAÇÃO': 'https://www.google.com',
+        'ATA DE JULGAMENTO PROPOSTA': 'https://www.google.com',
+        'HOMOLOGAÇÃO/RATIFICAÇÃO': 'https://www.google.com',
+        'MINUTA DE CONTRATO': 'https://www.google.com',
+        'SUMULA DE CONTRATO': 'https://www.google.com',
+      },
+      'Pregão Eletrônico': {
+        'DFD': 'https://www.google.com',
+        'ETP': 'https://www.google.com',
+        'TR': 'https://www.google.com',
+        'AUTORIZAÇÃO PREFEITO': 'https://www.google.com',
+        'DISPONIBILIDADE ORÇAMENTÁRIA': 'https://www.google.com',
+        'MINUTA DE EDITAL': 'https://www.google.com',
+        'SOLICITAÇÃO DE PARECER': 'https://www.google.com',
+        'ATA DE JULGAMENTO HABILITAÇÃO': 'https://www.google.com',
+        'ATA DE JULGAMENTO PROPOSTA': 'https://www.google.com',
+        'HOMOLOGAÇÃO/RATIFICAÇÃO': 'https://www.google.com',
+        'MINUTA DE CONTRATO': 'https://www.google.com',
+        'SUMULA DE CONTRATO': 'https://www.google.com',
+      },
+      'Inexigibilidade': {
+        'DFD': 'https://www.google.com',
+        'ETP': 'https://www.google.com',
+        'TR': 'https://www.google.com',
+        'AUTORIZAÇÃO PREFEITO': 'https://www.google.com',
+        'DISPONIBILIDADE ORÇAMENTÁRIA': 'https://www.google.com',
+        'MINUTA DE EDITAL': 'https://www.google.com',
+        'SOLICITAÇÃO DE PARECER': 'https://www.google.com',
+        'ATA DE JULGAMENTO HABILITAÇÃO': 'https://www.google.com',
+        'ATA DE JULGAMENTO PROPOSTA': 'https://www.google.com',
+        'HOMOLOGAÇÃO/RATIFICAÇÃO': 'https://www.google.com',
+        'MINUTA DE CONTRATO': 'https://www.google.com',
+        'SUMULA DE CONTRATO': 'https://www.google.com',
+      },
+      'Credenciamento/Chamada Pública': {
+        'DFD': 'https://www.google.com',
+        'ETP': 'https://www.google.com',
+        'TR': 'https://www.google.com',
+        'AUTORIZAÇÃO PREFEITO': 'https://www.google.com',
+        'DISPONIBILIDADE ORÇAMENTÁRIA': 'https://www.google.com',
+        'MINUTA DE EDITAL': 'https://www.google.com',
+        'SOLICITAÇÃO DE PARECER': 'https://www.google.com',
+        'ATA DE JULGAMENTO HABILITAÇÃO': 'https://www.google.com',
+        'ATA DE JULGAMENTO PROPOSTA': 'https://www.google.com',
+        'HOMOLOGAÇÃO/RATIFICAÇÃO': 'https://www.google.com',
+        'MINUTA DE CONTRATO': 'https://www.google.com',
+        'SUMULA DE CONTRATO': 'https://www.google.com',
+      },
+      'Adesão': {
+        'DFD': 'https://www.google.com',
+        'ETP': 'https://www.google.com',
+        'TR': 'https://www.google.com',
+        'AUTORIZAÇÃO PREFEITO': 'https://www.google.com',
+        'DISPONIBILIDADE ORÇAMENTÁRIA': 'https://www.google.com',
+        'MINUTA DE EDITAL': 'https://www.google.com',
+        'SOLICITAÇÃO DE PARECER': 'https://www.google.com',
+        'ATA DE JULGAMENTO HABILITAÇÃO': 'https://www.google.com',
+        'ATA DE JULGAMENTO PROPOSTA': 'https://www.google.com',
+        'HOMOLOGAÇÃO/RATIFICAÇÃO': 'https://www.google.com',
+        'MINUTA DE CONTRATO': 'https://www.google.com',
+        'SUMULA DE CONTRATO': 'https://www.google.com',
+      },
+      'Dispensa': {
+        'DFD': 'https://www.google.com',
+        'ETP': 'https://www.google.com',
+        'TR': 'https://www.google.com',
+        'AUTORIZAÇÃO PREFEITO': 'https://www.google.com',
+        'DISPONIBILIDADE ORÇAMENTÁRIA': 'https://www.google.com',
+        'MINUTA DE EDITAL': 'https://www.google.com',
+        'SOLICITAÇÃO DE PARECER': 'https://www.google.com',
+        'ATA DE JULGAMENTO HABILITAÇÃO': 'https://www.google.com',
+        'ATA DE JULGAMENTO PROPOSTA': 'https://www.google.com',
+        'HOMOLOGAÇÃO/RATIFICAÇÃO': 'https://www.google.com',
+        'MINUTA DE CONTRATO': 'https://www.google.com',
+        'SUMULA DE CONTRATO': 'https://www.google.com',
+      },
+      // Adicionar outras modalidades aqui...
+    };
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Modelos de $modalidade'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: fileModelLinks[modalidade]!.entries.map((entry) {
+                return ListTile(
+                  title: Text(entry.key),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _launchURL(entry.value);
+                  },
+                );
+              }).toList(),
+            ),
           ),
           actions: [
             TextButton(

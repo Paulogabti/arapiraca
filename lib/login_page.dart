@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'auth_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -16,7 +17,14 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ambiente de Trabalho - CPC-Obras'),
+        title: Text(
+              'Ambiente de Trabalho - CPC',
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.bold,
+                fontSize: 20, // Ajuste o tamanho conforme necessário
+                color: const Color.fromARGB(255, 1, 89, 161),
+              ),
+      ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -56,12 +64,12 @@ class _LoginPageState extends State<LoginPage> {
                   style: TextStyle(color: Colors.red),
                 ),
                 SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/register');
-                  },
-                  child: Text('Registrar'),
-                ),
+               // ElevatedButton(
+                 // onPressed: () {
+                  //  Navigator.pushNamed(context, '/register');
+                 // },
+                //  child: Text('Registrar'),
+              //  ),
               ],
             ),
           ),

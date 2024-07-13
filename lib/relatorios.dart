@@ -10,6 +10,7 @@ import 'auth_provider.dart';
 import 'licitacao.dart';
 import 'relatorios_geral.dart';
 import 'package:intl/intl.dart';
+import 'relatorio_hudson.dart';
 
 // Defina sua URL do backend
 const String backendUrl = 'http://localhost:3000';
@@ -129,6 +130,40 @@ class _RelatoriosIconState extends State<RelatoriosIcon> {
                   }
                 },
               ),
+              ListTile(
+                leading: Icon(Icons.assignment), // Ícone para Relatório Hudson
+                title: Text('Relatório para SIAP/TCE'),
+                onTap: () async {
+                  try {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false, // Impedir que o usuário feche o diálogo tocando fora dele
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 20),
+                              Text('Gerando relatório...'),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+
+
+                    await generateHudsonReport(context);
+
+                    // Fechar a barra de progresso
+                    Navigator.of(context).pop();
+                  } catch (e) {
+                    // Handle error
+                    print(e);
+                    Navigator.of(context).pop(); // Fechar a barra de progresso em caso de erro também
+                  }
+                },
+              ),
             ],
           ),
           actions: [
@@ -188,14 +223,16 @@ class _RelatoriosIconState extends State<RelatoriosIcon> {
       ),
     );
 
-    // Salvar PDF no Flutter Web e abrir em uma nova guia
+    // Função para salvar e abrir o PDF no Flutter Web
     final bytes = await pdf.save();
     final blob = html.Blob([bytes], 'application/pdf');
     final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
+
+    html.AnchorElement(href: url)
       ..setAttribute("download", "relatorio_individual.pdf")
       ..target = 'blank'
       ..click();
+
     html.Url.revokeObjectUrl(url);
   }
 
@@ -250,3 +287,6 @@ class _RelatoriosIconState extends State<RelatoriosIcon> {
     }
   }
 }
+
+
+

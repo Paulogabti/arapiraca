@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'auth_provider.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
+  @override
+  _RegisterPageState createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isButtonVisible = false; // Alterar para false se desejar ocultar o botão inicialmente
 
   @override
   Widget build(BuildContext context) {
@@ -52,19 +58,20 @@ class RegisterPage extends StatelessWidget {
                 },
               ),
               SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    Provider.of<AuthProvider>(context, listen: false).register(
-                      _nameController.text,
-                      _emailController.text,
-                      _passwordController.text,
-                    );
-                    Navigator.pop(context);
-                  }
-                },
-                child: Text('Registrar'),
-              ),
+              if (_isButtonVisible)
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      Provider.of<AuthProvider>(context, listen: false).register(
+                        _nameController.text,
+                        _emailController.text,
+                        _passwordController.text,
+                      );
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Text('Registrar'),
+                ),
             ],
           ),
         ),
